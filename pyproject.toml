@@ -24,7 +24,11 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+    "polars",
+    "build_taxa_lineage@git+https://github.com/vidyasagar0405/build_taxa_lineage",
+    "xlsxwriter"
+]
 
 [project.urls]
 Documentation = "https://github.com/U.N. Owen/kraken-post-processor#readme"
@@ -59,3 +63,6 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true

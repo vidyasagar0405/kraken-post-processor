@@ -1,8 +1,17 @@
 #!/usr/bin/env python
 
 import argparse
+import os
+from pathlib import Path
+
+import xlsxwriter
 import polars as pl
 from build_taxa_lineage import build_lineage_map
+from kraken_post_processor.spli_taxa import split_taxa_by_rank
+
+
+def ensure_outdir(outdir: str) -> None:
+    Path(outdir).mkdir(parents=True, exist_ok=True)
 
 
 def load_kraken_report(filepath: str) -> pl.LazyFrame:
@@ -55,6 +64,7 @@ def attach_lineage(classified: pl.LazyFrame, db_path: str) -> pl.LazyFrame:
 def combine_and_filter(
     unclassified: pl.LazyFrame, classified_with_lineage: pl.LazyFrame
 ) -> pl.DataFrame:
+
     unclassified = unclassified.with_columns([pl.lit("unclassified").alias("lineage")])
     combined = pl.concat([unclassified, classified_with_lineage])
 
@@ -65,14 +75,56 @@ def combine_and_filter(
     )
 
 
-def save_outputs(df: pl.DataFrame, output_file: str) -> None:
-    df.write_excel(
-        output_file,
-        worksheet="all",
-        autofit=True,
+def write_outputs_to_dir(
+    rank_dfs: dict[str, pl.LazyFrame],
+    combined: pl.DataFrame,
+    outdir: str,
+    excel_file: str,
+    include_combined: bool = True,
+    include_unclassified: bool = True,
+):
+    ensure_outdir(outdir)
+    sheets = {}
+
+    # CSV outputs
+    for rank, lf in rank_dfs.items():
+        df = lf.collect()
+        df.write_csv(f"{outdir}/{rank}.csv")
+        sheets[rank] = df
+
+    if include_combined:
+        combined.write_csv(f"{outdir}/all.csv")
+        sheets["all"] = combined
+
+    if include_unclassified:
+        unclassified = combined.filter(pl.col("lineage") == "unclassified")
+        unclassified.write_csv(f"{outdir}/Unclassified.csv")
+        sheets["Unclassified"] = unclassified
+
+    # Excel output
+    with xlsxwriter.Workbook(excel_file) as workbook:
+        for sheet_name, df in sheets.items():
+            worksheet = workbook.add_worksheet(sheet_name[:31])
+            max_widths = [len(str(col)) for col in df.columns]
+
+            for col_idx, col_name in enumerate(df.columns):
+                worksheet.write(0, col_idx, col_name)
+
+            for row_idx, row in enumerate(df.rows(), start=1):
+                for col_idx, val in enumerate(row):
+                    val_str = str(val)
+                    worksheet.write(row_idx, col_idx, val)
+                    max_widths[col_idx] = max(max_widths[col_idx], len(val_str))
+
+            for col_idx, width in enumerate(max_widths):
+                if col_idx == 1:
+                    worksheet.set_column(col_idx, col_idx, None, None, {"hidden": True})
+                else:
+                    worksheet.set_column(col_idx, col_idx, min(width + 2, 50))
+
+    print(
+        f"All outputs written to:\n  Directory: {outdir}/\n  Excel file: {excel_file}"
     )
-    print(f"Output saved to: {output_file}")
-    print(f"Estimated memory usage: {df.estimated_size('mb')} MB")
 
 
 def parse_args():
@@ -85,22 +137,37 @@ def parse_args():
     parser.add_argument(
         "-d",
         "--db",
-        required=True,
         help="Path to ETE SQLite taxa.sqlite (taxonomy database file)",
     )
     parser.add_argument(
-        "-o", "--output", required=True, help="Output Excel file (.xlsx)"
+        "-o",
+        "--outdir",
+        default=None,
+        help="Output directory (default: '<input_base>-taxa/')",
+    )
+    parser.add_argument(
+        "-e",
+        "--xlsx",
+        default=None,
+        help="Optional Excel output file name (default: '<outdir>-taxa.xlsx')",
     )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    input_basename = os.path.splitext(os.path.basename(args.input))[0]
+    outdir = args.outdir or f"{input_basename}-taxonomy"
+    excel_file = args.xlsx or f"{outdir}taxa.xlsx"
+
     df = load_kraken_report(args.input)
     unclassified, classified = preprocess(df)
     classified_with_lineage = attach_lineage(classified, args.db)
+
+    all_rank_dfs = split_taxa_by_rank(classified_with_lineage)
     result = combine_and_filter(unclassified, classified_with_lineage)
-    save_outputs(result, args.output)
+
+    write_outputs_to_dir(all_rank_dfs, result, outdir, excel_file)
 
 
 if __name__ == "__main__":
