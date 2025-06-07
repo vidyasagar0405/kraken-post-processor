@@ -1,0 +1,3 @@
+polars
+git+https://github.com/vidyasagar0405/build_taxa_lineage.git#egg=build_taxa_lineage
+xlsxwriter
