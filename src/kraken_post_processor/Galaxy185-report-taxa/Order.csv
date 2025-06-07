@@ -1,9 +1,0 @@
-Order,lineage,ncbi_tax_id,percentage,reads_direct
-Bacteroidales,d__Bacteria|p__Bacteroidota|c__Bacteroidia|o__Bacteroidales,171549,16.23,1046
-Flavobacteriales,d__Bacteria|p__Bacteroidota|c__Flavobacteriia|o__Flavobacteriales,200644,0.01,5
-Eubacteriales,d__Bacteria|p__Bacillota|c__Clostridia|o__Eubacteriales,186802,6.99,296
-Eubacteriales,d__Bacteria|p__Bacillota|c__Clostridia|o__Eubacteriales|g__Intestinimonas|s__Intestinimonas_butyriciproducens,1297617,0.0,3
-Lactobacillales,d__Bacteria|p__Bacillota|c__Bacilli|o__Lactobacillales,186826,0.5,1
-Coriobacteriales,d__Bacteria|p__Actinomycetota|c__Coriobacteriia|o__Coriobacteriales,84999,0.19,3
-Enterobacterales,d__Bacteria|p__Pseudomonadota|c__Gammaproteobacteria|o__Enterobacterales,91347,1.88,32
-Burkholderiales,d__Bacteria|p__Pseudomonadota|c__Betaproteobacteria|o__Burkholderiales,80840,0.09,1
