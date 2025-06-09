@@ -118,7 +118,7 @@ def write_outputs_to_dir(
 
             for col_idx, width in enumerate(max_widths):
                 if col_idx == 1:
-                    worksheet.set_column(col_idx, col_idx, None, None, {"hidden": True})
+                    worksheet.set_column(col_idx, col_idx, 2.5)  # Set narrow width (e.g., 2.5 units)
                 else:
                     worksheet.set_column(col_idx, col_idx, min(width + 2, 50))
 
